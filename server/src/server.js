@@ -48,8 +48,11 @@ app.get("/", (req, res) => {
 const pathIs = path.join(process.cwd(), "uploads", "users");
 console.log("pathIds----", pathIs);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Allowed origin: ${FRONTEND_URL}`);
-});
+// const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () => {
+//   console.log(`Server running on http://localhost:${PORT}`);
+//   console.log(`Allowed origin: ${FRONTEND_URL}`);
+// });
+
+//for vercel deployement
+export default app;
