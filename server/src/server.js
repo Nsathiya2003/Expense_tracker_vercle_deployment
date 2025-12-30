@@ -82,9 +82,9 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { ConnectDB } from "./config/db.js";
+
 import { userRouter } from "./routes/user-router.js";
 import { incomeRouter } from "./routes/income-router.js";
-import * as path from "path";
 import { goalRouter } from "./routes/goal-router.js";
 import { expenseRouter } from "./routes/expense-router.js";
 import budgetRouter from "./routes/budget-router.js";
@@ -93,19 +93,12 @@ import notificationRouter from "./routes/notification-routes.js";
 
 dotenv.config();
 
-// -------------------
-// Initialize Express
-// -------------------
-const app = express();
+const app = express(); // ✅ MUST be first
 
-// -------------------
-// Middleware
-// -------------------
-const FRONTEND_URL = process.env.FRONT_END_URL || "http://localhost:5173";
-
+// CORS
 app.use(
   cors({
-    origin: FRONTEND_URL, // You can keep "*" for testing but better use frontend URL in production
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
@@ -113,9 +106,18 @@ app.use(
 
 app.use(express.json());
 
-// -------------------
+// ✅ DB connection middleware (Vercel safe)
+app.use(async (req, res, next) => {
+  try {
+    await ConnectDB();
+    next();
+  } catch (err) {
+    console.error("MongoDB connection failed:", err);
+    res.status(500).json({ message: "Database connection failed" });
+  }
+});
+
 // Routes
-// -------------------
 app.use("/api/user", userRouter);
 app.use("/api/income", incomeRouter);
 app.use("/api/goal", goalRouter);
@@ -128,27 +130,5 @@ app.get("/", (req, res) => {
   res.json({ message: "Backend running" });
 });
 
-// -------------------
-// Serve static files locally (not on Vercel)
-// -------------------
-if (!process.env.VERCEL) {
-  app.use(
-    "/uploads/users",
-    express.static(path.join(process.cwd(), "uploads", "users"))
-  );
-}
-
-// -------------------
-// Connect to MongoDB
-// -------------------
-ConnectDB()
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => {
-    console.error("MongoDB connection failed:", err.message);
-    process.exit(1);
-  });
-
-// -------------------
-// Export for Vercel
-// -------------------
+// ✅ IMPORTANT for Vercel
 export default app;
