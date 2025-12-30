@@ -46,14 +46,14 @@ app.use(express.json());
 // );
 
 //for vercel
-if (process.env.VERCEL) {
-  console.log("Uploads disabled on Vercel");
-} else {
-  app.use(
-    "/uploads/users",
-    express.static(path.join(process.cwd(), "uploads", "users"))
-  );
-}
+// if (process.env.VERCEL) {
+//   console.log("Uploads disabled on Vercel");
+// } else {
+//   app.use(
+//     "/uploads/users",
+//     express.static(path.join(process.cwd(), "uploads", "users"))
+//   );
+// }
 
 app.use("/api/user", userRouter);
 app.use("/api/income", incomeRouter);
