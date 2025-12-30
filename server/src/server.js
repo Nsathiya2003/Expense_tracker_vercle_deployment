@@ -12,7 +12,18 @@ import { dashboardRouter } from "./routes/dashboard-router.js";
 import notificationRouter from "./routes/notification-routes.js";
 
 dotenv.config();
-ConnectDB();
+
+//for vercel
+// ConnectDB();
+
+app.use(async (req, res, next) => {
+  try {
+    await ConnectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ message: "Database connection failed" });
+  }
+});
 
 const app = express();
 
@@ -29,10 +40,20 @@ app.use(
 
 app.use(express.json());
 
-app.use(
-  "/uploads/users",
-  express.static(path.join(process.cwd(), "uploads", "users"))
-);
+// app.use(
+//   "/uploads/users",
+//   express.static(path.join(process.cwd(), "uploads", "users"))
+// );
+
+//for vercel
+if (process.env.VERCEL) {
+  console.log("Uploads disabled on Vercel");
+} else {
+  app.use(
+    "/uploads/users",
+    express.static(path.join(process.cwd(), "uploads", "users"))
+  );
+}
 
 app.use("/api/user", userRouter);
 app.use("/api/income", incomeRouter);
