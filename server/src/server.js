@@ -93,17 +93,10 @@ import notificationRouter from "./routes/notification-routes.js";
 
 dotenv.config();
 
+// -------------------
+// Initialize Express
+// -------------------
 const app = express();
-
-// -------------------
-// Connect to MongoDB
-// -------------------
-ConnectDB()
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => {
-    console.error("MongoDB connection failed:", err.message);
-    process.exit(1); // stop the app if DB fails
-  });
 
 // -------------------
 // Middleware
@@ -112,24 +105,13 @@ const FRONTEND_URL = process.env.FRONT_END_URL || "http://localhost:5173";
 
 app.use(
   cors({
-    origin: "*", // you can change to FRONTEND_URL for security
+    origin: FRONTEND_URL, // You can keep "*" for testing but better use frontend URL in production
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
 
 app.use(express.json());
-
-// -------------------
-// Static file serving
-// -------------------
-if (!process.env.VERCEL) {
-  // Only serve uploads locally, not on Vercel
-  app.use(
-    "/uploads/users",
-    express.static(path.join(process.cwd(), "uploads", "users"))
-  );
-}
 
 // -------------------
 // Routes
@@ -147,10 +129,24 @@ app.get("/", (req, res) => {
 });
 
 // -------------------
-// Path debug (optional)
+// Serve static files locally (not on Vercel)
 // -------------------
-const uploadsPath = path.join(process.cwd(), "uploads", "users");
-console.log("Uploads path:", uploadsPath);
+if (!process.env.VERCEL) {
+  app.use(
+    "/uploads/users",
+    express.static(path.join(process.cwd(), "uploads", "users"))
+  );
+}
+
+// -------------------
+// Connect to MongoDB
+// -------------------
+ConnectDB()
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => {
+    console.error("MongoDB connection failed:", err.message);
+    process.exit(1);
+  });
 
 // -------------------
 // Export for Vercel
