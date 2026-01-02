@@ -93,31 +93,37 @@ import notificationRouter from "./routes/notification-routes.js";
 
 dotenv.config();
 
-const app = express(); 
-
-// CORS
-const FRONTEND_URL = 'https://expense-tracker-vercle-deployment.vercel.app/';
+const app = express();
 
 app.use(
   cors({
-    origin: FRONTEND_URL,
+    origin: "*", // since you use token in localStorage
     methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
   })
 );
 
-//  DB connection middleware (Vercel safe)
+app.use(express.json());
+
+
+let isConnected = false;
+
 app.use(async (req, res, next) => {
   try {
-    await ConnectDB();
+    if (!isConnected) {
+      await ConnectDB();
+      isConnected = true;
+      console.log("MongoDB connected");
+    }
     next();
   } catch (err) {
-    console.error("MongoDB connection failed:", err);
+    console.error("MongoDB error:", err);
     res.status(500).json({ message: "Database connection failed" });
   }
 });
 
-// Routes
+/* -------------------- */
+/* ROUTES */
+/* -------------------- */
 app.use("/api/user", userRouter);
 app.use("/api/income", incomeRouter);
 app.use("/api/goal", goalRouter);
@@ -130,5 +136,7 @@ app.get("/", (req, res) => {
   res.json({ message: "Backend running" });
 });
 
-// ✅ IMPORTANT for Vercel
+/* -------------------- */
+/* ✅ EXPORT FOR VERCEL */
+/* -------------------- */
 export default app;
