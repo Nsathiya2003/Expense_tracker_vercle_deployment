@@ -93,20 +93,20 @@ import notificationRouter from "./routes/notification-routes.js";
 
 dotenv.config();
 
-const app = express(); // ✅ MUST be first
+const app = express(); 
 
 // CORS
+const FRONTEND_URL = process.env.FRONT_END_URL;
+
 app.use(
   cors({
-    origin: "*",
+    origin: FRONTEND_URL,
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
 
-app.use(express.json());
-
-// ✅ DB connection middleware (Vercel safe)
+//  DB connection middleware (Vercel safe)
 app.use(async (req, res, next) => {
   try {
     await ConnectDB();
