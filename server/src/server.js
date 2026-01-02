@@ -161,7 +161,4 @@ app.get("/", (req, res) => {
   res.json({ message: "Backend running" });
 });
 
-/* -------------------- */
-/* ✅ EXPORT FOR VERCEL */
-/* -------------------- */
 export default app;
