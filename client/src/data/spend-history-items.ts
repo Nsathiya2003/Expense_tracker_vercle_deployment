@@ -1,0 +1,17 @@
+// export const spendData = [
+//   { date: "1 Jun", expense: 200 },
+//   { date: "3 Jun", expense: 400 },
+//   { date: "5 Jun", expense: 150 },
+//   { date: "7 Jun", expense: 600 },
+//   { date: "9 Jun", expense: 350 },
+//   { date: "11 Jun", expense: 500 },
+//   { date: "13 Jun", expense: 700 },
+//   { date: "15 Jun", expense: 450 },
+//   { date: "17 Jun", expense: 800 },
+//   { date: "19 Jun", expense: 620 },
+//   { date: "21 Jun", expense: 900 },
+//   { date: "23 Jun", expense: 700 },
+//   { date: "25 Jun", expense: 950 },
+//   { date: "27 Jun", expense: 850 },
+//   { date: "29 Jun", expense: 1100 },
+// ];
