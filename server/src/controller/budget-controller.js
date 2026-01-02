@@ -240,7 +240,7 @@ export const updateBudget = async (req, res) => {
 
   try {
     const updatedBudget = await Budget.findOneAndUpdate(
-      { _id: id, createdBy: user_id }, // make sure user owns the budget
+      { _id: id, createdBy: user_id }, 
       {
         budget_category,
         budget_amount: +budget_amount,
