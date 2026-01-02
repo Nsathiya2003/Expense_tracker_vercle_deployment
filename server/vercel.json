@@ -15,9 +15,6 @@
       "src": "/(.*)",
       "dest": "/src/server.js"
     }
-  ],
-  "env": {
-    "MONGODB_URL": "@mongodb_url",
-    "FRONT_END_URL": "http://localhost:5173"
-  }
+  ]
+  
 }
