@@ -80,7 +80,6 @@
 
 import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
 import { ConnectDB } from "./config/db.js";
 
 import { userRouter } from "./routes/user-router.js";
@@ -95,16 +94,36 @@ dotenv.config();
 
 const app = express();
 
-app.use(
-  cors({
-    origin: "*", // since you use token in localStorage
-    methods: ["GET", "POST", "PUT", "DELETE"],
-  })
-);
-
+/* -------------------- */
+/* ✅ BODY PARSER */
+/* -------------------- */
 app.use(express.json());
 
+/* -------------------- */
+/* ✅ CORS (BEST FOR VERCEL + MOBILE) */
+/* -------------------- */
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*"); // allow all origins
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
 
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
+
+/* -------------------- */
+/* ✅ MONGODB CONNECTION (SERVERLESS SAFE) */
+/* -------------------- */
 let isConnected = false;
 
 app.use(async (req, res, next) => {
@@ -116,13 +135,16 @@ app.use(async (req, res, next) => {
     }
     next();
   } catch (err) {
-    console.error("MongoDB error:", err);
-    res.status(500).json({ message: "Database connection failed" });
+    console.error("MongoDB connection failed:", err);
+    return res.status(500).json({
+      status: false,
+      message: "Database connection failed",
+    });
   }
 });
 
 /* -------------------- */
-/* ROUTES */
+/* ✅ ROUTES */
 /* -------------------- */
 app.use("/api/user", userRouter);
 app.use("/api/income", incomeRouter);
@@ -132,6 +154,9 @@ app.use("/api/budget", budgetRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/notification", notificationRouter);
 
+/* -------------------- */
+/* ✅ HEALTH CHECK */
+/* -------------------- */
 app.get("/", (req, res) => {
   res.json({ message: "Backend running" });
 });
