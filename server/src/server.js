@@ -96,7 +96,7 @@ dotenv.config();
 const app = express(); 
 
 // CORS
-const FRONTEND_URL = process.env.FRONT_END_URL;
+const FRONTEND_URL = 'https://expense-tracker-vercle-deployment.vercel.app/';
 
 app.use(
   cors({
