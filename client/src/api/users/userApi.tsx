@@ -37,7 +37,7 @@ export interface UpdateUserPayload {
 
 export const UserApi = {
   createUser: (body: CreateUserPayload) =>
-    handleRequest(apiClient.post("user/create", body)),
+    handleRequest(apiClient.post("/api/user/create", body)),
   loginUser: (body: LoginUserPayload) =>
     handleRequest(apiClient.post("/user/login", body)),
   forgotPassword: (body: ForgotUserPayload) =>
