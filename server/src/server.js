@@ -92,34 +92,50 @@ import { dashboardRouter } from "./routes/dashboard-router.js";
 import notificationRouter from "./routes/notification-routes.js";
 
 dotenv.config();
+
 const app = express();
 
-/* ✅ 1. CORS MUST BE FIRST */
-app.use(
-  cors({
-    origin: true,        // allow all origins on Vercel
-    credentials: true,
-  })
-);
-app.options("*", cors());
-
-/* ✅ 2. BODY PARSER */
+/* -------------------- */
+/* ✅ BODY PARSER */
+/* -------------------- */
 app.use(express.json());
 
-/* ✅ 3. DB CONNECT (SKIP OPTIONS) */
-let isConnected = false;
-app.use(async (req, res, next) => {
-  if (req.method === "OPTIONS") return next();
+/* -------------------- */
+/* ✅ CORS — SAFE FOR VERCEL */
+/* -------------------- */
+app.use(
+  cors({
+    origin: true, // allow all origins dynamically
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
-  if (!isConnected) {
-    await ConnectDB();
-    isConnected = true;
-    console.log("MongoDB connected");
+/* -------------------- */
+/* ✅ MONGODB CONNECTION */
+/* -------------------- */
+let isConnected = false;
+
+app.use(async (req, res, next) => {
+  try {
+    if (!isConnected) {
+      await ConnectDB();
+      isConnected = true;
+      console.log("MongoDB connected");
+    }
+    next();
+  } catch (err) {
+    console.error("MongoDB connection failed:", err);
+    return res.status(500).json({
+      status: false,
+      message: "Database connection failed",
+    });
   }
-  next();
 });
 
-/* ✅ 4. ROUTES */
+/* -------------------- */
+/* ✅ ROUTES */
+/* -------------------- */
 app.use("/api/user", userRouter);
 app.use("/api/income", incomeRouter);
 app.use("/api/goal", goalRouter);
@@ -128,8 +144,11 @@ app.use("/api/budget", budgetRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/notification", notificationRouter);
 
+/* -------------------- */
+/* ✅ HEALTH CHECK */
+/* -------------------- */
 app.get("/", (req, res) => {
-  res.json({ message: "Backend is running" });
+  res.json({ message: "Backend running" });
 });
- 
+
 export default app;
