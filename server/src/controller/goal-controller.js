@@ -99,13 +99,25 @@ export const updateGoal = async (req, res) => {
         data: [],
       });
     }
-    (findData.goal_name = goal_name),
+      (findData.goal_name = goal_name),
       (findData.target_amount = target_amount),
       (findData.deadline_date = deadline_date),
       (findData.notes = notes);
-    findData.updatedBy = user_id;
+       findData.updatedBy = user_id;
 
     await findData.save();
+
+      //update goal status...
+      if (findData) {
+      if (findData.allocated_amount >= findData.target_amount) {
+        findData.status = "completed";
+      } else if (findData.allocated_amount > 0) {
+        findData.status = "In-progress";
+      } else {
+        findData.status = "pending";
+      }
+      await findData.save(); // save the status change
+    }
 
     return res.status(201).json({
       status: true,

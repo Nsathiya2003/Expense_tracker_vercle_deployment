@@ -7,25 +7,17 @@
 // import * as path from "path";
 // import { goalRouter } from "./routes/goal-router.js";
 // import { expenseRouter } from "./routes/expense-router.js";
-// import budgetRouter from "./routes/budget-router.js";
+// import budgetRouter from "./routes/budget-router.js"; 
 // import { dashboardRouter } from "./routes/dashboard-router.js";
 // import notificationRouter from "./routes/notification-routes.js";
 
 // dotenv.config();
 
 // //for vercel
-// // ConnectDB();
-
-// app.use(async (req, res, next) => {
-//   try {
-//     await ConnectDB();
-//     next();
-//   } catch (err) {
-//     res.status(500).json({ message: "Database connection failed" });
-//   }
-// });
+// ConnectDB();
 
 // const app = express();
+
 
 // //  CORS setup
 // const FRONTEND_URL = process.env.FRONT_END_URL || "http://localhost:5173";
@@ -40,20 +32,11 @@
 
 // app.use(express.json());
 
-// // app.use(
-// //   "/uploads/users",
-// //   express.static(path.join(process.cwd(), "uploads", "users"))
-// // );
+// app.use(
+//   "/uploads/users",
+//   express.static(path.join(process.cwd(), "uploads", "users"))
+// );
 
-// //for vercel
-// // if (process.env.VERCEL) {
-// //   console.log("Uploads disabled on Vercel");
-// // } else {
-// //   app.use(
-// //     "/uploads/users",
-// //     express.static(path.join(process.cwd(), "uploads", "users"))
-// //   );
-// // }
 
 // app.use("/api/user", userRouter);
 // app.use("/api/income", incomeRouter);
@@ -69,13 +52,13 @@
 // const pathIs = path.join(process.cwd(), "uploads", "users");
 // console.log("pathIds----", pathIs);
 
-// // const PORT = process.env.PORT || 5000;
-// // app.listen(PORT, () => {
-// //   console.log(`Server running on http://localhost:${PORT}`);
-// //   console.log(`Allowed origin: ${FRONTEND_URL}`);
-// // });
+// const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () => {
+//   console.log(`Server running on http://localhost:${PORT}`);
+//   console.log(`Allowed origin: ${FRONTEND_URL}`);
+// });
 
-// //for vercel deployement
+//for vercel 
 // export default app;
 
 import express from "express";

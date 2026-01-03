@@ -4,6 +4,184 @@ import { BalanceModel } from "../models/balance-model.js";
 import { Budget } from "../models/budget-model.js";
 import notificationModel from "../models/notification-model.js";
 
+// export const createExpense = async (req, res) => {
+//   try {
+//     const {
+//       expense_category,
+//       expense_amount,
+//       budget_category,
+//       expense_date,
+//       is_recurring,
+//       notes,
+//       payment_mode,
+//       tags,
+//     } = req.body;
+
+//     const user_id = req.user.id;
+
+//     /* ---------- 1. Basic Validation ---------- */
+//     if (!expense_category || !expense_amount) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Expense category and amount are required",
+//       });
+//     }
+
+//     if (Number(expense_amount) <= 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Expense amount must be greater than zero",
+//       });
+//     }
+
+//     /* ---------- 2. Check Balance ---------- */
+//     const findBalance = await BalanceModel.findOne({
+//       createdBy: new mongoose.Types.ObjectId(user_id),
+//     });
+
+//     if (!findBalance) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Balance record not found",
+//       });
+//     }
+
+//     if (findBalance.balanceAmount < Number(expense_amount)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "You don't have enough balance to add this expense",
+//       });
+//     }
+
+//     /* ---------- 3. OPTIONAL Budget Logic ---------- */
+//     const budget = await Budget.findOne({
+//       budget_category: expense_category,
+//       createdBy: user_id,
+//     });
+
+//     if (budget) {
+//       const {
+//         budget_amount,
+//         budget_reaches,
+//         reach_percentage = 0,
+//         budget_exceeded,
+//         budget_start_date,
+//         budget_end_date,
+//       } = budget;
+
+//       const startDate = new Date(budget_start_date);
+//       const endDate = new Date(budget_end_date);
+//       endDate.setHours(23, 59, 59, 999);
+
+//       const expenseAgg = await Expense.aggregate([
+//         {
+//           $match: {
+//             createdBy: new mongoose.Types.ObjectId(user_id),
+//             expense_category,
+//             isDeleted: false,
+//             createdAt: {
+//               $gte: startDate,
+//               $lte: endDate,
+//             },
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: null,
+//             totalExpense: { $sum: "$expense_amount" },
+//           },
+//         },
+//       ]);
+
+//       const totalExpense = expenseAgg[0]?.totalExpense || 0;
+//       const projectedTotal = totalExpense + Number(expense_amount);
+
+//       /* ---- Percentage Alert ---- */
+//       if (budget_reaches && reach_percentage > 0) {
+//         const usedPercentage = (projectedTotal / budget_amount) * 100;
+
+//         if (usedPercentage >= reach_percentage) {
+//           await createNotificationIfNotExists({
+//             userId: user_id,
+//             type: "budget_percentage",
+//             category: expense_category,
+//             title: "Budget Alert",
+//             message: `You have used ${Math.round(
+//               usedPercentage
+//             )}% of your ${expense_category} budget.`,
+//             fullMessage: `Your ${expense_category} budget is ₹${budget_amount}. After adding this expense, your total spending will be ₹${projectedTotal}.`,
+//           });
+//         }
+//       }
+
+//       /* ---- Exceeded Alert ---- */
+//       if (budget_exceeded && projectedTotal > budget_amount) {
+//         const exceededBy = projectedTotal - budget_amount;
+
+//         await createNotificationIfNotExists({
+//           userId: user_id,
+//           type: "budget_exceeded",
+//           category: expense_category,
+//           title: "Budget Exceeded",
+//           message: `This expense will exceed your ${expense_category} budget.`,
+//           fullMessage: `Your budget is ₹${budget_amount}. This expense exceeds the limit by ₹${exceededBy}.`,
+//         });
+//       }
+
+//       /* ---- Increment count ONLY first time ---- */
+//       const wasAlreadyExceeded = totalExpense > budget_amount;
+//       const isNowExceeded = projectedTotal > budget_amount;
+
+//       if (!wasAlreadyExceeded && isNowExceeded) {
+//         await Budget.updateOne(
+//           { _id: budget._id },
+//           { $inc: { budget_exceeded_counts: 1 } }
+//         );
+//       }
+//     }
+
+//     /* ---------- 4. Create Expense (ALWAYS) ---------- */
+//     const data = await Expense.create({
+//       expense_category,
+//       expense_amount: Number(expense_amount),
+//       budget_category,
+//       expense_date,
+//       is_recurring,
+//       notes,
+//       payment_mode,
+//       tags,
+//       createdBy: user_id,
+//     });
+// /* ---------- 5. Update Balance (ALWAYS) ---------- */
+
+// // Ensure totalIncome and totalExpense are numbers
+// const totalIncome = Number(findBalance.totalIncome) || 0;
+// const totalExpense = Number(findBalance.totalExpense) || 0;
+// const expenseAmount = Number(expense_amount);
+
+// // Update totalExpense and balanceAmount safely
+// findBalance.totalExpense = totalExpense + expenseAmount;
+// findBalance.balanceAmount = totalIncome - findBalance.totalExpense;
+
+// await findBalance.save();
+
+
+//     /* ---------- 6. Success ---------- */
+//     return res.status(201).json({
+//       success: true,
+//       message: "Expense created successfully",
+//       data,
+//     });
+//   } catch (error) {
+//     console.error("Create Expense Error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Error creating expense",
+//     });
+//   }
+// };
+
+
 export const createExpense = async (req, res) => {
   try {
     const {
@@ -17,28 +195,21 @@ export const createExpense = async (req, res) => {
       tags,
     } = req.body;
 
-    const user_id = req.user.id;
+    const user_id = new mongoose.Types.ObjectId(req.user.id);
+    const today = new Date(expense_date || new Date());
 
-    /* ---------- 1. Basic Validation ---------- */
-    if (!expense_category || !expense_amount) {
+    // 1. Basic validation
+    if (!expense_category || !expense_amount || Number(expense_amount) <= 0) {
       return res.status(400).json({
         success: false,
-        message: "Expense category and amount are required",
+        message: "Expense category and amount (greater than 0) are required",
       });
     }
 
-    if (Number(expense_amount) <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Expense amount must be greater than zero",
-      });
-    }
-
-    /* ---------- 2. Check Balance ---------- */
+    // 2. Get balance
     const findBalance = await BalanceModel.findOne({
       createdBy: new mongoose.Types.ObjectId(user_id),
     });
-
     if (!findBalance) {
       return res.status(404).json({
         success: false,
@@ -46,104 +217,195 @@ export const createExpense = async (req, res) => {
       });
     }
 
-    if (findBalance.balanceAmount < Number(expense_amount)) {
+    const totalIncome = Number(findBalance.totalIncome) || 0;
+    const totalExpense = Number(findBalance.totalExpense) || 0;
+    const expenseAmount = Number(expense_amount);
+
+    if (totalIncome - totalExpense < expenseAmount) {
       return res.status(400).json({
         success: false,
         message: "You don't have enough balance to add this expense",
       });
     }
 
-    /* ---------- 3. OPTIONAL Budget Logic ---------- */
-    const budget = await Budget.findOne({
-      budget_category: expense_category,
-      createdBy: user_id,
-    });
+    // 3. Budget logic & notifications
+    // if (budget_category) {
+    //   const budget = await Budget.findOne({
+    //     budget_category: expense_category,
+    //     createdBy: user_id,
+    //   });
 
-    if (budget) {
-      const {
-        budget_amount,
-        budget_reaches,
-        reach_percentage = 0,
-        budget_exceeded,
-        budget_start_date,
-        budget_end_date,
-      } = budget;
+    //   if (budget) {
+    //     const {
+    //       budget_amount,
+    //       budget_reaches,
+    //       reach_percentage = 0,
+    //       budget_exceeded,
+    //       budget_start_date,
+    //       budget_end_date,
+    //     } = budget;
 
-      const startDate = new Date(budget_start_date);
-      const endDate = new Date(budget_end_date);
-      endDate.setHours(23, 59, 59, 999);
+    //     const startDate = new Date(budget_start_date);
+    //     const endDate = new Date(budget_end_date);
+    //     endDate.setHours(23, 59, 59, 999);
 
-      const expenseAgg = await Expense.aggregate([
-        {
-          $match: {
-            createdBy: new mongoose.Types.ObjectId(user_id),
-            expense_category,
-            isDeleted: false,
-            createdAt: {
-              $gte: startDate,
-              $lte: endDate,
-            },
+    //     const expenseAgg = await Expense.aggregate([
+    //       {
+    //         $match: {
+    //           createdBy: new mongoose.Types.ObjectId(user_id),
+    //           expense_category,
+    //           isDeleted: false,
+    //           createdAt: { $gte: startDate, $lte: endDate },
+    //         },
+    //       },
+    //       { $group: { _id: null, totalExpense: { $sum: "$expense_amount" } } },
+    //     ]);
+
+    //     const totalExp = expenseAgg[0]?.totalExpense || 0;
+    //     const projectedTotal = totalExp + expenseAmount;
+
+    //     // Percentage alert
+    //     if (budget_reaches && reach_percentage > 0) {
+    //       const usedPercentage = (projectedTotal / budget_amount) * 100;
+    //       if (usedPercentage >= reach_percentage) {
+    //         await createNotificationIfNotExists({
+    //           userId: user_id,
+    //           type: "budget_percentage",
+    //           category: expense_category,
+    //           title: "Budget Alert",
+    //           message: `You have used ${Math.round(
+    //             usedPercentage
+    //           )}% of your ${expense_category} budget.`,
+    //           fullMessage: `Your ${expense_category} budget is ₹${budget_amount}. After adding this expense, your total spending will be ₹${projectedTotal}.`,
+    //         });
+    //       }
+    //     }
+
+    //     // Budget exceeded alert
+    //     if (budget_exceeded && projectedTotal > budget_amount) {
+    //       const exceededBy = projectedTotal - budget_amount;
+    //       await createNotificationIfNotExists({
+    //         userId: user_id,
+    //         type: "budget_exceeded",
+    //         category: expense_category,
+    //         title: "Budget Exceeded",
+    //         message: `This expense will exceed your ${expense_category} budget.`,
+    //         fullMessage: `Your budget is ₹${budget_amount}. This expense exceeds the limit by ₹${exceededBy}.`,
+    //       });
+    //     }
+
+    //     // Increment exceeded count
+    //     const wasAlreadyExceeded = totalExp > budget_amount;
+    //     const isNowExceeded = projectedTotal > budget_amount;
+    //     if (!wasAlreadyExceeded && isNowExceeded) {
+    //       await Budget.updateOne(
+    //         { _id: budget._id },
+    //         { $inc: { budget_exceeded_counts: 1 } }
+    //       );
+    //     }
+    //   }
+    // }
+
+// 3. Budget logic & notifications
+if (budget_category) {
+  const budget = await Budget.findOne({
+    budget_category: expense_category,
+    createdBy: user_id,
+  });
+
+  if (budget && budget.need_notification) {
+    const {
+      budget_amount,
+      budget_reaches,
+      reach_percentage = 0,
+      budget_exceeded,
+      budget_start_date,
+      budget_end_date,
+    } = budget;
+
+    const startDate = new Date(budget_start_date);
+    const endDate = new Date(budget_end_date);
+    endDate.setHours(23, 59, 59, 999);
+
+    const expenseDate = expense_date
+      ? new Date(expense_date)
+      : new Date();
+
+    // ⛔ outside range → no notification
+    if (expenseDate < startDate || expenseDate > endDate) return;
+
+    // ✅ FIXED: use expense_date (NOT createdAt)
+    const expenseAgg = await Expense.aggregate([
+      {
+        $match: {
+          createdBy: new mongoose.Types.ObjectId(user_id),
+          expense_category,
+          isDeleted: false,
+          expense_date: {
+            $gte: startDate,
+            $lte: endDate,
           },
         },
-        {
-          $group: {
-            _id: null,
-            totalExpense: { $sum: "$expense_amount" },
-          },
+      },
+      {
+        $group: {
+          _id: null,
+          totalExpense: { $sum: "$expense_amount" },
         },
-      ]);
+      },
+    ]);
 
-      const totalExpense = expenseAgg[0]?.totalExpense || 0;
-      const projectedTotal = totalExpense + Number(expense_amount);
+    const totalExp = expenseAgg[0]?.totalExpense || 0;
+    const projectedTotal = totalExp + expenseAmount;
 
-      /* ---- Percentage Alert ---- */
-      if (budget_reaches && reach_percentage > 0) {
-        const usedPercentage = (projectedTotal / budget_amount) * 100;
+    // Percentage alert
+    if (budget_reaches && reach_percentage > 0) {
+      const usedPercentage = (projectedTotal / budget_amount) * 100;
 
-        if (usedPercentage >= reach_percentage) {
-          await createNotificationIfNotExists({
-            userId: user_id,
-            type: "budget_percentage",
-            category: expense_category,
-            title: "Budget Alert",
-            message: `You have used ${Math.round(
-              usedPercentage
-            )}% of your ${expense_category} budget.`,
-            fullMessage: `Your ${expense_category} budget is ₹${budget_amount}. After adding this expense, your total spending will be ₹${projectedTotal}.`,
-          });
-        }
-      }
-
-      /* ---- Exceeded Alert ---- */
-      if (budget_exceeded && projectedTotal > budget_amount) {
-        const exceededBy = projectedTotal - budget_amount;
-
+      if (usedPercentage >= reach_percentage) {
         await createNotificationIfNotExists({
           userId: user_id,
-          type: "budget_exceeded",
+          type: "budget_percentage",
           category: expense_category,
-          title: "Budget Exceeded",
-          message: `This expense will exceed your ${expense_category} budget.`,
-          fullMessage: `Your budget is ₹${budget_amount}. This expense exceeds the limit by ₹${exceededBy}.`,
+          title: "Budget Alert",
+          message: `You have used ${Math.round(
+            usedPercentage
+          )}% of your ${expense_category} budget.`,
+          fullMessage: `Your ${expense_category} budget is ₹${budget_amount}. After adding this expense, your total spending will be ₹${projectedTotal}.`,
         });
-      }
-
-      /* ---- Increment count ONLY first time ---- */
-      const wasAlreadyExceeded = totalExpense > budget_amount;
-      const isNowExceeded = projectedTotal > budget_amount;
-
-      if (!wasAlreadyExceeded && isNowExceeded) {
-        await Budget.updateOne(
-          { _id: budget._id },
-          { $inc: { budget_exceeded_counts: 1 } }
-        );
       }
     }
 
-    /* ---------- 4. Create Expense (ALWAYS) ---------- */
-    const data = await Expense.create({
+    // Budget exceeded alert
+    if (budget_exceeded && projectedTotal > budget_amount) {
+      const exceededBy = projectedTotal - budget_amount;
+
+      await createNotificationIfNotExists({
+        userId: user_id,
+        type: "budget_exceeded",
+        category: expense_category,
+        title: "Budget Exceeded",
+        message: `This expense will exceed your ${expense_category} budget.`,
+        fullMessage: `Your budget is ₹${budget_amount}. This expense exceeds the limit by ₹${exceededBy}.`,
+      });
+    }
+
+    // Increment exceeded count
+    if (totalExp <= budget_amount && projectedTotal > budget_amount) {
+      await Budget.updateOne(
+        { _id: budget._id },
+        { $inc: { budget_exceeded_counts: 1 } }
+      );
+    }
+  }
+}
+
+
+
+    // 4. Create Expense
+    const newExpense = await Expense.create({
       expense_category,
-      expense_amount: Number(expense_amount),
+      expense_amount: expenseAmount,
       budget_category,
       expense_date,
       is_recurring,
@@ -153,18 +415,16 @@ export const createExpense = async (req, res) => {
       createdBy: user_id,
     });
 
-    /* ---------- 5. Update Balance (ALWAYS) ---------- */
-    findBalance.totalExpense += Number(expense_amount);
-    findBalance.balanceAmount =
-      findBalance.totalIncome - findBalance.totalExpense;
-
+    // 5. Update Balance safely
+    findBalance.totalExpense = totalExpense + expenseAmount;
+    findBalance.balanceAmount = Math.max(totalIncome - findBalance.totalExpense, 0);
     await findBalance.save();
 
-    /* ---------- 6. Success ---------- */
+    // 6. Return success
     return res.status(201).json({
       success: true,
       message: "Expense created successfully",
-      data,
+      data: newExpense,
     });
   } catch (error) {
     console.error("Create Expense Error:", error);
@@ -226,6 +486,93 @@ export const getExpenseById = async (req, res) => {
   }
 };
 
+// export const updateExpense = async (req, res) => {
+//   try {
+//     const user_id = req.user.id;
+//     const { id } = req.params;
+//     const {
+//       expense_category,
+//       expense_amount,
+//       budget_category,
+//       expense_date,
+//       is_recurring,
+//       notes,
+//       payment_mode,
+//       tags,
+//     } = req.body;
+
+//     const findExpense = await Expense.findById(id);
+//     if (!findExpense) {
+//       return res.status(404).json({
+//         status: false,
+//         message: "Expense data not found",
+//         data: null,
+//       });
+//     }
+
+//     /* =========================
+//        1. STORE OLD VALUE
+//     ========================== */
+//     const oldExpenseAmount = Number(findExpense.expense_amount);
+
+//     /* =========================
+//        2. CALCULATE NEW VALUE
+//     ========================== */
+//     const newExpenseAmount =
+//       expense_amount !== undefined ? Number(expense_amount) : oldExpenseAmount;
+
+//     /* =========================
+//        3. UPDATE BALANCE USING DIFFERENCE
+//     ========================== */
+//     const expenseDiff = newExpenseAmount - oldExpenseAmount;
+
+//     if (expenseDiff !== 0) {
+//       await BalanceModel.findOneAndUpdate(
+//         { createdBy: user_id },
+//         {
+//           $inc: {
+//             totalExpense: expenseDiff,
+//             balanceAmount: -expenseDiff,
+//           },
+//           $set: { updatedBy: user_id },
+//         },
+//         { new: true }
+//       );
+//     }
+
+//     /* =========================
+//        4. UPDATE EXPENSE FIELDS
+//     ========================== */
+//     if (expense_category !== undefined)
+//       findExpense.expense_category = expense_category;
+//     if (expense_amount !== undefined)
+//       findExpense.expense_amount = newExpenseAmount;
+//     if (budget_category !== undefined)
+//       findExpense.budget_category = budget_category;
+//     if (expense_date !== undefined) findExpense.expense_date = expense_date;
+//     if (is_recurring !== undefined) findExpense.is_recurring = is_recurring;
+//     if (notes !== undefined) findExpense.notes = notes;
+//     if (payment_mode !== undefined) findExpense.payment_mode = payment_mode;
+//     if (tags !== undefined) findExpense.tags = tags;
+
+//     findExpense.updatedBy = user_id;
+
+//     await findExpense.save();
+
+//     return res.status(200).json({
+//       status: true,
+//       message: "Expense updated successfully",
+//       data: findExpense,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       status: false,
+//       message: `Error updating expense: ${error.message}`,
+//       data: null,
+//     });
+//   }
+// };
+
 export const updateExpense = async (req, res) => {
   try {
     const user_id = req.user.id;
@@ -250,24 +597,14 @@ export const updateExpense = async (req, res) => {
       });
     }
 
-    /* =========================
-       1. STORE OLD VALUE
-    ========================== */
-    const oldExpenseAmount = Number(findExpense.expense_amount);
-
-    /* =========================
-       2. CALCULATE NEW VALUE
-    ========================== */
-    const newExpenseAmount =
-      expense_amount !== undefined ? Number(expense_amount) : oldExpenseAmount;
-
-    /* =========================
-       3. UPDATE BALANCE USING DIFFERENCE
-    ========================== */
+    // Old & new amounts
+    const oldExpenseAmount = Number(findExpense.expense_amount) || 0;
+    const newExpenseAmount = expense_amount !== undefined ? Number(expense_amount) : oldExpenseAmount;
     const expenseDiff = newExpenseAmount - oldExpenseAmount;
 
+    // Update balance safely
     if (expenseDiff !== 0) {
-      await BalanceModel.findOneAndUpdate(
+      const updatedBalance = await BalanceModel.findOneAndUpdate(
         { createdBy: user_id },
         {
           $inc: {
@@ -278,17 +615,16 @@ export const updateExpense = async (req, res) => {
         },
         { new: true }
       );
+
+      updatedBalance.totalExpense = Math.max(updatedBalance.totalExpense, 0);
+      updatedBalance.balanceAmount = Math.max(updatedBalance.balanceAmount, 0);
+      await updatedBalance.save();
     }
 
-    /* =========================
-       4. UPDATE EXPENSE FIELDS
-    ========================== */
-    if (expense_category !== undefined)
-      findExpense.expense_category = expense_category;
-    if (expense_amount !== undefined)
-      findExpense.expense_amount = newExpenseAmount;
-    if (budget_category !== undefined)
-      findExpense.budget_category = budget_category;
+    // Update expense fields
+    if (expense_category !== undefined) findExpense.expense_category = expense_category;
+    if (expense_amount !== undefined) findExpense.expense_amount = newExpenseAmount;
+    if (budget_category !== undefined) findExpense.budget_category = budget_category;
     if (expense_date !== undefined) findExpense.expense_date = expense_date;
     if (is_recurring !== undefined) findExpense.is_recurring = is_recurring;
     if (notes !== undefined) findExpense.notes = notes;
@@ -296,7 +632,6 @@ export const updateExpense = async (req, res) => {
     if (tags !== undefined) findExpense.tags = tags;
 
     findExpense.updatedBy = user_id;
-
     await findExpense.save();
 
     return res.status(200).json({
@@ -313,6 +648,48 @@ export const updateExpense = async (req, res) => {
   }
 };
 
+
+// export const deleteExpense = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const user_id = req.user.id;
+
+//     const expense = await Expense.findById(id);
+//     if (!expense) {
+//       return res.status(404).json({
+//         status: false,
+//         message: "Expense already deleted or not found",
+//         data: null,
+//       });
+//     }
+
+//     await BalanceModel.findOneAndUpdate(
+//       { createdBy: new mongoose.Types.ObjectId(user_id) },
+//       {
+//         $inc: {
+//           totalExpense: -expense.expense_amount,
+//         },
+//       },
+//       { new: true }
+//     );
+
+//     const deleteExpense = await Expense.findByIdAndDelete(id);
+
+//     return res.status(200).json({
+//       status: true,
+//       message: "expense deleted successfully",
+//       data: deleteExpense,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       status: false,
+//       message: `Error deleting expense: ${error.message}`,
+//       data: null,
+//     });
+//   }
+// };
+
+
 export const deleteExpense = async (req, res) => {
   try {
     const { id } = req.params;
@@ -327,22 +704,28 @@ export const deleteExpense = async (req, res) => {
       });
     }
 
-    await BalanceModel.findOneAndUpdate(
+    // Update balance safely
+    const updatedBalance = await BalanceModel.findOneAndUpdate(
       { createdBy: new mongoose.Types.ObjectId(user_id) },
       {
         $inc: {
-          totalExpense: -expense.expense_amount,
+          totalExpense: -Number(expense.expense_amount),
+          balanceAmount: + Number(expense.expense_amount)
         },
       },
       { new: true }
     );
 
-    const deleteExpense = await Expense.findByIdAndDelete(id);
+    updatedBalance.totalExpense = Math.max(updatedBalance.totalExpense, 0);
+    updatedBalance.balanceAmount = Math.max(updatedBalance.balanceAmount, 0);
+    await updatedBalance.save();
+
+    const deletedExpense = await Expense.findByIdAndDelete(id);
 
     return res.status(200).json({
       status: true,
-      message: "expense deleted successfully",
-      data: deleteExpense,
+      message: "Expense deleted successfully",
+      data: deletedExpense,
     });
   } catch (error) {
     return res.status(500).json({
@@ -492,15 +875,21 @@ export const filterExpense = async (req, res) => {
 
 export const checkBudgetLimit = async (req, res) => {
   try {
-    const { category, expense_amount } = req.body;
+    const { category, expense_amount, expense_date } = req.body;
     const userId = new mongoose.Types.ObjectId(req.user.id);
-    const today = new Date();
+
+    // 🔥 Use EXPENSE DATE instead of current date
+    const expenseDate = expense_date
+      ? new Date(expense_date)
+      : new Date();
 
     /* -------- 1. Find Budget -------- */
     const budget = await Budget.findOne({
       budget_category: category,
       createdBy: userId,
     });
+
+    console.log('budgrt is----',budget)
 
     if (!budget) {
       return res.status(200).json({ alert: false });
@@ -515,35 +904,43 @@ export const checkBudgetLimit = async (req, res) => {
       budget_exceeded,
     } = budget;
 
-    /* -------- 2. Today must be INSIDE budget range -------- */
+    /* -------- 2. Expense date must be INSIDE budget range -------- */
     const startDate = new Date(budget_start_date);
     const endDate = new Date(budget_end_date);
     endDate.setHours(23, 59, 59, 999); // 🔥 important
 
-    if (today < startDate || today > endDate) {
+    console.log('startDate---',startDate);
+        console.log('endDate---',endDate);
+
+        console.log('expenseDate---',expenseDate);
+
+
+    if (expenseDate < startDate || expenseDate > endDate) {
+      console.log('helooo')
       return res.status(200).json({ alert: false });
     }
 
-    /* -------- 3. Calculate Existing Expenses (createdAt-based) -------- */
-    const expenseAgg = await Expense.aggregate([
-      {
-        $match: {
-          createdBy: userId,
-          expense_category: category,
-          isDeleted: false,
-          createdAt: {
-            $gte: startDate,
-            $lte: endDate,
-          },
-        },
+    /* -------- 3. Calculate Existing Expenses -------- */
+const expenseAgg = await Expense.aggregate([
+  {
+    $match: {
+      createdBy: userId,
+      expense_category: category,
+      isDeleted: false,
+      expense_date: {
+        $gte: startDate,
+        $lte: endDate,
       },
-      {
-        $group: {
-          _id: null,
-          totalExpense: { $sum: "$expense_amount" },
-        },
-      },
-    ]);
+    },
+  },
+  {
+    $group: {
+      _id: null,
+      totalExpense: { $sum: "$expense_amount" },
+    },
+  },
+]);
+
 
     const totalExpense = expenseAgg[0]?.totalExpense || 0;
 
@@ -591,6 +988,7 @@ export const checkBudgetLimit = async (req, res) => {
     });
   }
 };
+
 
 // export const checkBudgetLimit = async (req, res) => {
 //   try {

@@ -3,7 +3,7 @@ import { generateAccessToken } from "../helpers/authentication.js";
 import User from "../models/user-model.js";
 import mongoose from "mongoose";
 import generateOtp from "../utils/generateOtp.js";
-import { sendOtpEmail } from "../services/emailService.js";
+import { sendOtpEmail, sendWelcomeEmail } from "../services/emailService.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -31,6 +31,10 @@ export const createUser = async (req, res) => {
       emailId: emailId,
       password: hashedPassword,
     });
+
+      // Send welcome email
+    await sendWelcomeEmail(emailId, username);
+    
     return res.status(200).json({
       status: true,
       message: "Account registered successfully",
@@ -66,68 +70,118 @@ export const findUser = async (req, res) => {
   } catch (err) {
     return res.status(500).json({
       status: true,
-      message: `Error occured find user${err.message}`,
+      message: `Error come find user${err.message}`,
       data: [],
     });
   }
 };
+
+// export const updateUser = async (req, res) => {
+//   const { id } = req.params;
+//   const user_profile = req.file;
+//   const { username, mobileNumber, emailId, age, gender, address, lastName } =
+//     req.body;
+//   const objectId = new mongoose.Types.ObjectId(String(id));
+
+//   console.log('req.file-------',req.file)
+//   console.log('user_profile-----',user_profile);
+
+
+//     const publicPath = `/uploads/users/${user_profile}`;
+
+//     console.log('publicPath-------',publicPath)
+
+//   try {
+//     const existing = await User.findById(id);
+//     if (!existing) {
+//       return res.status(404).json({
+//         status: true,
+//         message: "user not found",
+//         data: [],
+//       });
+//     }
+//     const duplicateEmail = await User.findOne({
+//       emailId,
+//       _id: { $ne: objectId },
+//     });
+//     if (duplicateEmail) {
+//       return res.status(404).json({
+//         status: true,
+//         message: "EmailId already exists",
+//         data: [],
+//       });
+//     }
+//     (existing.username = username),
+//       (existing.lastName = lastName),
+//       (existing.mobileNumber = mobileNumber),
+//       (existing.emailId = emailId),
+//       (existing.updatedBy = objectId),
+//       (existing.address = address),
+//       (existing.age = age),
+//       (existing.gender = gender);
+//     // Update profile image if uploaded
+//     if (req.file) {
+//       existing.file_name = req.file.originalname; // original file name
+//       existing.file_path = req.file.path; // Cloudinary URL
+//     }
+//     await existing.save();
+
+//     return res.status(201).json({
+//       status: true,
+//       message: "user updated successfully",
+//       data: existing,
+//     });
+//   } catch (err) {
+//     return res.status(500).json({
+//       status: false,
+//       message: `Error occur update user${err.message}`,
+//       data: [],
+//     });
+//   }
+// };
 
 export const updateUser = async (req, res) => {
-  const { id } = req.params;
-  const user_profile = req.file;
-  const { username, mobileNumber, emailId, age, gender, address, lastName } =
-    req.body;
-  const objectId = new mongoose.Types.ObjectId(String(id));
-  //   const publicPath = `/uploads/users/${req?.file?.filename}`;
-
   try {
+    const { id } = req.params;
+    const { username, lastName, mobileNumber, emailId, age, gender, address } = req.body;
+
+    console.log("req.file =>", req.file); // DEBUG
+
     const existing = await User.findById(id);
-    if (!existing) {
-      return res.status(404).json({
-        status: true,
-        message: "user not found",
-        data: [],
-      });
-    }
-    const duplicateEmail = await User.findOne({
-      emailId,
-      _id: { $ne: objectId },
-    });
-    if (duplicateEmail) {
-      return res.status(404).json({
-        status: true,
-        message: "EmailId already exists",
-        data: [],
-      });
-    }
-    (existing.username = username),
-      (existing.lastName = lastName),
-      (existing.mobileNumber = mobileNumber),
-      (existing.emailId = emailId),
-      (existing.updatedBy = objectId),
-      (existing.address = address),
-      (existing.age = age),
-      (existing.gender = gender);
-    // Update profile image if uploaded
+    if (!existing) return res.status(404).json({ status: false, message: "User not found" });
+
+    const duplicateEmail = await User.findOne({ emailId, _id: { $ne: id } });
+    if (duplicateEmail) return res.status(409).json({ status: false, message: "Email already exists" });
+
+    // Update fields
+    existing.username = username;
+    existing.lastName = lastName;
+    existing.mobileNumber = mobileNumber;
+    existing.emailId = emailId;
+    existing.address = address;
+    existing.age = age;
+    existing.gender = gender;
+
+    // ✅ Cloudinary file
     if (req.file) {
-      existing.file_name = req.file.originalname; // original file name
+      console.log("Uploaded file:", req.file); // DEBUG
+      existing.file_name = req.file.originalname;
       existing.file_path = req.file.path; // Cloudinary URL
     }
+
+
+
     await existing.save();
 
-    return res.status(201).json({
-      status: true,
-      message: "user updated successfully",
-      data: existing,
-    });
+    return res.status(200).json({ status: true, message: "User updated successfully", data: existing });
+
   } catch (err) {
-    return res.status(500).json({
-      status: false,
-      message: `Error occur update user${err.message}`,
-      data: [],
-    });
+    console.error("Update user error:", err);
+    return res.status(500).json({ status: false, message: err.message });
   }
 };
+
+
 
 export const userLogin = async (req, res) => {
   const { emailId, password } = req.body;
@@ -231,7 +285,7 @@ export const resetPassword = async (req, res) => {
     console.log("email---", findEmail.otp === +otp);
 
     if (findEmail.otp !== +otp) {
-      return res.status(400).json({ message: "OTP invalid" });
+      return res.status(400).json({ message: "Invalid OTP" });
     }
 
     //password hashing

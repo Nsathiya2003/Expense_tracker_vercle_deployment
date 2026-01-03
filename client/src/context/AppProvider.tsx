@@ -1,7 +1,6 @@
 import React, { useState, type ReactNode } from "react";
 import { AppContext } from "./AppContext";
 import { useGetUser } from "../api/users/user-hooks";
-import { baseImgUrl } from "../api/apiClient";
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -21,9 +20,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setData({
         username: userData.data.username || "",
       });
-      if (userData.data.file_path) {
-        console.log("baseImgUrl---", baseImgUrl);
-        setPreviewUrl(`${baseImgUrl}${userData?.data?.file_path}`);
+    if (userData.data.file_path) {
+        setPreviewUrl(userData.data.file_path); // Cloudinary URL
       }
     }
   }, [userData]);

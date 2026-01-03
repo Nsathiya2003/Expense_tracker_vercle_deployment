@@ -5,7 +5,6 @@ import NotificationDialog from "../../pages/notification/notification-dialog";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useUnreadNotification } from "../../pages/notification/unread-notication";
 import { useGetUser } from "../../api/users/user-hooks";
-import { baseImgUrl } from "../../api/apiClient";
 import { FaRegUserCircle } from "react-icons/fa";
 import { FiLogOut, FiUser } from "react-icons/fi";
 
@@ -31,8 +30,8 @@ export default function Header() {
   useEffect(() => {
     if (userData?.data) {
       setData({ username: userData.data.username || "" });
-      if (userData.data.file_path) {
-        setPreviewUrl(`${baseImgUrl}${userData.data.file_path}`);
+          if (userData.data.file_path) {
+        setPreviewUrl(userData.data.file_path); // Cloudinary URL
       }
     }
   }, [userData]);

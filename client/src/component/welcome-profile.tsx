@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useGetUser } from "../api/users/user-hooks";
-import profile from "../assets/expense1.jpg";
-import { baseImgUrl } from "../api/apiClient";
+import profile from "../assets/images.jpg";
 
 export default function WelcomeProfileComponent() {
   const userId = localStorage.getItem("user_id");
@@ -20,9 +19,8 @@ export default function WelcomeProfileComponent() {
       setData({
         username: userData.data.username || "",
       });
-      if (userData.data.file_path) {
-        console.log("baseImgUrl---", baseImgUrl);
-        setPreviewUrl(`${baseImgUrl}${userData?.data?.file_path}`);
+    if (userData.data.file_path) {
+        setPreviewUrl(userData.data.file_path); // Cloudinary URL
       }
     }
   }, [userData]);

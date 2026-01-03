@@ -52,13 +52,15 @@ export default function GoalMobileCards({
               </span>
 
               <span
-                className={`text-xs px-3 py-1 rounded-full ${
-                  item.status === "PENDING"
-                    ? "bg-red-500/20 text-red-300"
-                    : item.status === "completed"
-                    ? "bg-green-500/20 text-green-300"
-                    : "bg-gray-500/20 text-gray-300"
-                }`}
+                 className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold ${
+                    item.status === "PENDING"
+                      ? "bg-red-500 bg-opacity-20 text-red-300 border border-red-500 border-opacity-40"
+                      : item.status === "In-progress"
+                      ? "bg-yellow-500 bg-opacity-20 text-yellow-300 border border-yellow-500 border-opacity-40"
+                      : item.status === "completed"
+                      ? "bg-green-500 bg-opacity-20 text-green-300 border border-green-500 border-opacity-40"
+                      : "bg-gray-500 bg-opacity-20 text-gray-300 border border-gray-500 border-opacity-40"
+                  }`}
               >
                 {item.status}
               </span>

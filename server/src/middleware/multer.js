@@ -47,17 +47,22 @@
 
 
 
-//2. CLOUDINARY STORAGE
+// middleware/multer.js
 import multer from "multer";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
-import cloudinary from "../config/cloudinary.js";
+import cloudinary from "../config/cloudinary.js"; // <-- UNCOMMENT THIS
 
 const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "expense-tracker/users", // Cloudinary folder
-    allowed_formats: ["jpg", "png", "jpeg"],
-  },
+  cloudinary, // <-- MUST pass this
+  params: async (req, file) => ({
+    folder: "expense-tracker/users",
+    public_id: `${Date.now()}-${file.originalname}`,
+    allowed_formats: ["jpg", "png", "jpeg"], // optional but recommended
+  }),
 });
 
 export const upload = multer({ storage });
+
+
+
+

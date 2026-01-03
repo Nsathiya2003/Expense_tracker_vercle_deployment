@@ -401,7 +401,7 @@ export const updateIncome = async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      category,
+      income_category,
       other_category,
       income_amount,
       notes,
@@ -409,6 +409,7 @@ export const updateIncome = async (req, res) => {
       saving_contribution,
       goal_contribute_amount,
       goal_id,
+      income_date
     } = req.body;
 
     const user_id = req.user.id;
@@ -474,49 +475,7 @@ export const updateIncome = async (req, res) => {
       { new: true }
     );
 
-    // /* =========================
-    //    4. GOAL HANDLING
-    // ========================== */
-    // const hadGoalBefore = oldGoalAmount > 0;
-    // const hasGoalNow = newGoalAmount > 0;
-
-    // // Goal removed
-    // if (!hasGoalNow && hadGoalBefore) {
-    //   const history = await GoalHistory.findOne({ income_id: id });
-    //   if (history) {
-    //     await Goal.findByIdAndUpdate(history.goal_id, {
-    //       $inc: { allocated_amount: -history.allocated_amount },
-    //     });
-    //     await GoalHistory.findByIdAndDelete(history._id);
-    //   }
-    //   findIncome.goal_id = null;
-    // }
-
-    // // Goal added
-    // if (hasGoalNow && !hadGoalBefore && goal_id) {
-    //   await GoalHistory.create({
-    //     goal_id,
-    //     income_type: findIncome.income_category,
-    //     allocated_amount: newGoalAmount,
-    //     createdBy: user_id,
-    //     income_id: findIncome._id,
-    //   });
-
-    //   let updatedAmt = await Goal.findByIdAndUpdate(goal_id, {
-    //     $inc: { allocated_amount: newGoalAmount },
-    //   });
-
-    //   if (updatedAmt.allocated_amount >= updatedAmt.target_amount) {
-    //     updatedAmt.status = "completed";
-    //     await updatedAmt.save();
-    //   }
-    // }
-
-    // findIncome.goal_id = goal_id;
-
-    /* =========================
-   4. GOAL HANDLING (CORRECTED)
-========================== */
+  
     const hadGoalBefore = oldGoalAmount > 0;
     const hasGoalNow = newGoalAmount > 0;
 
@@ -596,7 +555,7 @@ export const updateIncome = async (req, res) => {
     findIncome.goal_contribute_amount = newGoalAmount;
     findIncome.current_income_amount = newCurrentIncome;
 
-    if (category !== undefined) findIncome.income_category = category;
+    if (income_category !== undefined) findIncome.income_category = income_category;
     if (other_category !== undefined)
       findIncome.other_category = other_category;
     if (notes !== undefined) findIncome.notes = notes;
@@ -606,7 +565,7 @@ export const updateIncome = async (req, res) => {
       findIncome.saving_contribution = saving_contribution;
 
     findIncome.updatedBy = user_id;
-    findIncome.income_date = new Date();
+    findIncome.income_date = income_date;
 
     await findIncome.save();
 
@@ -623,7 +582,6 @@ export const updateIncome = async (req, res) => {
     });
   }
 };
-
 export const deleteIncome = async (req, res) => {
   try {
     const { id } = req.params;
@@ -638,17 +596,46 @@ export const deleteIncome = async (req, res) => {
       });
     }
 
-    await BalanceModel.findOneAndUpdate(
-      { createdBy: new mongoose.Types.ObjectId(user_id) },
-      {
-        $inc: {
-          totalIncome: -income.income_amount,
-          balanceAmount: -income.current_income_amount,
-        },
-      },
-      { new: true }
-    );
+    // 1. Get user's balance
+    const balance = await BalanceModel.findOne({ createdBy: user_id });
+    if (!balance) {
+      return res.status(404).json({
+        status: false,
+        message: "Balance record not found",
+        data: null,
+      });
+    }
 
+    // 2. Safely calculate new totals
+    const totalIncome = Math.max(Number(balance.totalIncome) - Number(income.income_amount), 0);
+    const balanceAmount = Math.max(Number(balance.balanceAmount) - Number(income.current_income_amount), 0);
+
+    balance.totalIncome = totalIncome;
+    balance.balanceAmount = balanceAmount;
+    await balance.save();
+
+    // 3. Update goal allocated amount and status
+    if (income.goal_id) {
+      const updatedGoal = await Goal.findById(income.goal_id);
+      if (updatedGoal) {
+        updatedGoal.allocated_amount = Math.max(
+          Number(updatedGoal.allocated_amount) - Number(income.goal_contribute_amount),
+          0
+        );
+
+        if (updatedGoal.allocated_amount >= updatedGoal.target_amount) {
+          updatedGoal.status = "completed";
+        } else if (updatedGoal.allocated_amount > 0) {
+          updatedGoal.status = "In-progress";
+        } else {
+          updatedGoal.status = "pending";
+        }
+
+        await updatedGoal.save();
+      }
+    }
+
+    // 4. Delete the income
     const deletedIncome = await Income.findByIdAndDelete(id);
 
     return res.status(200).json({
@@ -664,6 +651,67 @@ export const deleteIncome = async (req, res) => {
     });
   }
 };
+
+// export const deleteIncome = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const user_id = req.user.id;
+
+//     const income = await Income.findById(id);
+//     if (!income) {
+//       return res.status(404).json({
+//         status: false,
+//         message: "Income already deleted or not found",
+//         data: null,
+//       });
+//     }
+
+//     await BalanceModel.findOneAndUpdate(
+//       { createdBy: new mongoose.Types.ObjectId(user_id) },
+//       {
+//         $inc: {
+//           totalIncome: -income.income_amount,
+//           balanceAmount: -income.current_income_amount,
+//         },
+//       },
+//       { new: true }
+//     );
+
+//         // Update goal allocated amount
+//     const updatedGoal = await Goal.findOneAndUpdate(
+//       { _id: income.goal_id },
+//       { $inc: { allocated_amount: -income.goal_contribute_amount } },
+//       { new: true }
+//     );
+
+//     // Update goal status based on allocated_amount
+//     if (updatedGoal) {
+//       if (updatedGoal.allocated_amount >= updatedGoal.target_amount) {
+//         updatedGoal.status = "completed";
+//       } else if (updatedGoal.allocated_amount > 0) {
+//         updatedGoal.status = "In-progress";
+//       } else {
+//         updatedGoal.status = "pending";
+//       }
+//       await updatedGoal.save(); // save the status change
+//     }
+
+
+//     const deletedIncome = await Income.findByIdAndDelete(id);
+
+//     return res.status(200).json({
+//       status: true,
+//       message: "Income deleted successfully",
+//       data: deletedIncome,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       status: false,
+//       message: `Error deleting income: ${error.message}`,
+//       data: null,
+//     });
+//   }
+// };
 
 export const filterIncome = async (req, res) => {
   try {
