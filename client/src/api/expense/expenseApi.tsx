@@ -28,16 +28,16 @@ export interface CheckBudgetLimitPayload {
 
 export const expenseApi = {
   createExpense: (body: CreateExpensePayload) =>
-    handleRequest(apiClient.post("/expense/create", body)),
-  getExpense: () => handleRequest(apiClient.get("/expense/find")),
+    handleRequest(apiClient.post("/api/expense/create", body)),
+  getExpense: () => handleRequest(apiClient.get("/api/expense/find")),
   getExpenseById: (id: string | null) =>
-    handleRequest(apiClient.get(`/expense/get/${id}`)),
+    handleRequest(apiClient.get(`/api/expense/get/${id}`)),
   updateExpense: (body: CreateExpensePayload, id: string | null) =>
-    handleRequest(apiClient.put(`/expense/update/${id}`, body)),
+    handleRequest(apiClient.put(`/api/expense/update/${id}`, body)),
   deleteExpense: (id: string) =>
-    handleRequest(apiClient.delete(`/expense/delete/${id}`)),
+    handleRequest(apiClient.delete(`/api/expense/delete/${id}`)),
   useFilterExpense: (body: filterExpensePayload) =>
-    handleRequest(apiClient.post("/expense/filter", body)),
+    handleRequest(apiClient.post("/api/expense/filter", body)),
   checkBudgetLimit: (body: CheckBudgetLimitPayload) =>
-    handleRequest(apiClient.post("/expense/checkBudgetLimit", body)),
+    handleRequest(apiClient.post("/api/expense/checkBudgetLimit", body)),
 };

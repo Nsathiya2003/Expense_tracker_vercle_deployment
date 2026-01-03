@@ -9,9 +9,9 @@ export interface filterNotificationPayload {
 
 export const notificationApi = {
   useNotificationFilter: (body: filterNotificationPayload) =>
-    handleRequest(apiClient.post("/notification/findAll", body)),
+    handleRequest(apiClient.post("/api/notification/findAll", body)),
   markAsRead: (body: { ids: string[] }) =>
-    apiClient.put("/notification/mark-read", body),
+    apiClient.put("/api/notification/mark-read", body),
   deleteNotifications: (body: { ids: string[] }) =>
-    apiClient.delete("/notification/delete", { data: body }),
+    apiClient.delete("/api/notification/delete", { data: body }),
 };

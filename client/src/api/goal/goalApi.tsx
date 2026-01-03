@@ -19,16 +19,16 @@ export type filter_body = {
 
 export const GoalApi = {
   createGoal: (body: CreateGoalPayload) =>
-    handleRequest(apiClient.post("/goal/add", body)),
-  findGoal: () => handleRequest(apiClient.get("/goal/find")),
+    handleRequest(apiClient.post("/api/goal/add", body)),
+  findGoal: () => handleRequest(apiClient.get("/api/goal/find")),
   findOne: (id: string | null) =>
-    handleRequest(apiClient.get(`/goal/get/${id}`)),
+    handleRequest(apiClient.get(`/api/goal/get/${id}`)),
   updateGoal: (body: UpdateGoalPayload) =>
-    handleRequest(apiClient.put(`/goal/update/${body?.id}`, body)),
+    handleRequest(apiClient.put(`/api/goal/update/${body?.id}`, body)),
   deleteGoal: (id: string) =>
-    handleRequest(apiClient.delete(`/goal/delete/${id}`)),
+    handleRequest(apiClient.delete(`/api/goal/delete/${id}`)),
   filterGoal: (body: filter_body) =>
-    handleRequest(apiClient.post("/goal/filter", body)),
+    handleRequest(apiClient.post("/api/goal/filter", body)),
   ViewGoalHistory: (body: filter_body) =>
-    handleRequest(apiClient.post("/goal/viewGoalHistory", body)),
+    handleRequest(apiClient.post("/api/goal/viewGoalHistory", body)),
 };

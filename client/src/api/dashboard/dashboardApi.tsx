@@ -3,8 +3,8 @@ import { handleRequest } from "../requestHandler";
 
 export const dashboardApi = {
   getDashboardSummaryCards: () =>
-    handleRequest(apiClient.get("dashboard/summaryCards")),
+    handleRequest(apiClient.get("/api/dashboard/summaryCards")),
   monthlyExpenseIncome: () =>
-    handleRequest(apiClient.get("dashboard/monthlyExpenseIncome")),
-  spendHistory: () => handleRequest(apiClient.get("dashboard/spend-history")),
+    handleRequest(apiClient.get("/api/dashboard/monthlyExpenseIncome")),
+  spendHistory: () => handleRequest(apiClient.get("/api/dashboard/spend-history")),
 };

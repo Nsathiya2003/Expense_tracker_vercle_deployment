@@ -27,14 +27,14 @@ export interface updateBudgetPayload extends CreateBudgetPayload {
 }
 export const budgetApi = {
   createBudget: (body: CreateBudgetPayload) =>
-    handleRequest(apiClient.post("/budget/create", body)),
-  getBudgets: () => handleRequest(apiClient.get("/budget/find")),
+    handleRequest(apiClient.post("/api/budget/create", body)),
+  getBudgets: () => handleRequest(apiClient.get("/api/budget/find")),
   getBudgetById: (id: string | null) =>
-    handleRequest(apiClient.get(`/budget/get/${id}`)),
+    handleRequest(apiClient.get(`/api/budget/get/${id}`)),
   updateBudget: (body: updateBudgetPayload, id: string | null) =>
-    handleRequest(apiClient.put(`/budget/update/${id}`, body)),
+    handleRequest(apiClient.put(`/api/budget/update/${id}`, body)),
   deleteBudget: (id: string) =>
-    handleRequest(apiClient.delete(`/budget/delete/${id}`)),
+    handleRequest(apiClient.delete(`/api/budget/delete/${id}`)),
   filterBudget: (body: filterBudgetPayload) =>
-    handleRequest(apiClient.post("/budget/filter", body)),
+    handleRequest(apiClient.post("/api/budget/filter", body)),
 };

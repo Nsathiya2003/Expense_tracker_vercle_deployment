@@ -19,16 +19,16 @@ export interface filterIncomePayload {
 
 export const incomeApi = {
   createIncome: (body: CreateIncomePayload) =>
-    handleRequest(apiClient.post("/income/create", body)),
-  getIncome: () => handleRequest(apiClient.get("/income/find")),
+    handleRequest(apiClient.post("/api/income/create", body)),
+  getIncome: () => handleRequest(apiClient.get("/api/income/find")),
   getIncomeById: (id: string | null) =>
-    handleRequest(apiClient.get(`/income/get/${id}`)),
+    handleRequest(apiClient.get(`/api/income/get/${id}`)),
   updateIncome: (body: CreateIncomePayload, id: string | null) =>
-    handleRequest(apiClient.put(`/income/update/${id}`, body)),
+    handleRequest(apiClient.put(`/api/income/update/${id}`, body)),
   deleteIncome: (id: string) =>
-    handleRequest(apiClient.delete(`/income/delete/${id}`)),
+    handleRequest(apiClient.delete(`/api/income/delete/${id}`)),
   useFilterIncome: (body: filterIncomePayload) =>
-    handleRequest(apiClient.post("/income/filter", body)),
+    handleRequest(apiClient.post("/api/income/filter", body)),
   getIncomeBalance: () =>
-    handleRequest(apiClient.get("/income/incomeBalance/total")),
+    handleRequest(apiClient.get("/api/income/incomeBalance/total")),
 };

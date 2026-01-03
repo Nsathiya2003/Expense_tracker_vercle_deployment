@@ -37,15 +37,15 @@ export interface UpdateUserPayload {
 
 export const UserApi = {
   createUser: (body: CreateUserPayload) =>
-    handleRequest(apiClient.post("user/create", body)),
+    handleRequest(apiClient.post("/api/user/create", body)),
   loginUser: (body: LoginUserPayload) =>
-    handleRequest(apiClient.post("/user/login", body)),
+    handleRequest(apiClient.post("/api/user/login", body)),
   forgotPassword: (body: ForgotUserPayload) =>
-    handleRequest(apiClient.post("/user/forgot-password", body)),
+    handleRequest(apiClient.post("/api/user/forgot-password", body)),
   resetPassword: (body: ResetPasswordPayload) =>
-    handleRequest(apiClient.post("/user/reset-password", body)),
+    handleRequest(apiClient.post("/api/user/reset-password", body)),
   updateUser: (body: FormData, userId: string | null) =>
-    handleRequest(apiClient.put(`/user/update/${userId}`, body)),
+    handleRequest(apiClient.put(`/api/user/update/${userId}`, body)),
   getUser: (userId: string | null) =>
-    handleRequest(apiClient.get(`/user/get/${userId}`)),
+    handleRequest(apiClient.get(`/api/user/get/${userId}`)),
 };
