@@ -80,6 +80,7 @@
 
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import { ConnectDB } from "./config/db.js";
 
 import { userRouter } from "./routes/user-router.js";
@@ -91,61 +92,34 @@ import { dashboardRouter } from "./routes/dashboard-router.js";
 import notificationRouter from "./routes/notification-routes.js";
 
 dotenv.config();
-
 const app = express();
 
-/* -------------------- */
-/* ✅ BODY PARSER */
-/* -------------------- */
+/* ✅ 1. CORS MUST BE FIRST */
+app.use(
+  cors({
+    origin: true,        // allow all origins on Vercel
+    credentials: true,
+  })
+);
+app.options("*", cors());
+
+/* ✅ 2. BODY PARSER */
 app.use(express.json());
 
-/* -------------------- */
-/* ✅ CORS (BEST FOR VERCEL + MOBILE) */
-/* -------------------- */
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*"); // allow all origins
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-  );
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
+/* ✅ 3. DB CONNECT (SKIP OPTIONS) */
+let isConnected = false;
+app.use(async (req, res, next) => {
+  if (req.method === "OPTIONS") return next();
 
-  // Handle preflight requests
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
+  if (!isConnected) {
+    await ConnectDB();
+    isConnected = true;
+    console.log("MongoDB connected");
   }
-
   next();
 });
 
-/* -------------------- */
-/* ✅ MONGODB CONNECTION (SERVERLESS SAFE) */
-/* -------------------- */
-let isConnected = false;
-
-app.use(async (req, res, next) => {
-  try {
-    if (!isConnected) {
-      await ConnectDB();
-      isConnected = true;
-      console.log("MongoDB connected");
-    }
-    next();
-  } catch (err) {
-    console.error("MongoDB connection failed:", err);
-    return res.status(500).json({
-      status: false,
-      message: "Database connection failed",
-    });
-  }
-});
-
-/* -------------------- */
-/* ✅ ROUTES */
-/* -------------------- */
+/* ✅ 4. ROUTES */
 app.use("/api/user", userRouter);
 app.use("/api/income", incomeRouter);
 app.use("/api/goal", goalRouter);
@@ -154,11 +128,8 @@ app.use("/api/budget", budgetRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/notification", notificationRouter);
 
-/* -------------------- */
-/* ✅ HEALTH CHECK */
-/* -------------------- */
 app.get("/", (req, res) => {
-  res.json({ message: "Backend running" });
+  res.json({ message: "Backend is running" });
 });
-
+ 
 export default app;
